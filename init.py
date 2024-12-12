@@ -1,6 +1,265 @@
+import asyncio
+import aiohttp
+from functools import partial
+import io
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+from spoti import SpotiPy
+import tkinter as tk
+from tkinter import ttk
+import sv_ttk
+from PIL import ImageTk, ImageEnhance, Image
 
-API_KEY = os.getenv('API_KEY')
+current_song = ""
+current_bg_path= ""
+current_bg = None
+current_cover_path = ""
+current_cover = None
+
+images = []
+
+def truncate_string(text, max_length):
+    """
+    Truncates a string to the specified max_length and appends '...' if truncated.
+
+    :param text: The original string
+    :param max_length: The maximum number of characters before truncation
+    :return: The truncated string
+    """
+    if len(text) > max_length:
+        return text[:max_length - 3] + "..."
+    return text
+
+async def refresh_keys():
+    """
+    Periodically refresh api keys
+    """
+    while True:
+        await asyncio.sleep(3300000)
+        try:
+            api.RefreshApiKeys()
+        except Exception as e:
+            print(f"Error refreshing keys: {e}")
+
+async def fetch_image(url):
+    """
+    Fetch an image asynchronously from a URL.
+
+    :param url: URL of the image
+    :return: BytesIO object containing image data
+    """
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status == 200:
+                return io.BytesIO(await response.read())
+            else:
+                raise Exception(f"Failed to fetch image: {response.status}")
+
+def dim_image(image, factor):
+    """
+    Dim an image by reducing its brightness.
+
+    :param image: PIL Image object
+    :param factor: Brightness factor (0.0 is black, 1.0 is original brightness)
+    :return: Dimmed ImageTk.PhotoImage object
+    """
+    enhancer = ImageEnhance.Brightness(image)
+    dimmed_image = enhancer.enhance(factor)
+    return ImageTk.PhotoImage(dimmed_image)
+
+async def update_image(item, image, width, height, dim_factor):
+    """
+    Update a tkinter widget's image asynchronously.
+
+    :param item: The tkinter widget to update
+    :param image: The image to do
+    :param width: Desired width
+    :param height: Desired height
+    :param dim_factor: Brightness adjustment factor
+    """
+    global track_info
+    print(f"image_update: {item}")
+    try:
+        image = Image.open(image)
+        resized_image = image.resize((width, height))
+        dimmed_photo = dim_image(resized_image, dim_factor)
+        track_info.itemconfig(item, image=dimmed_photo)
+        images.append(dimmed_photo)
+        
+    except Exception as e:
+        print(f"Error updating image: {e}")
+
+async def update_cover_art(info):
+    """
+    Update cover art only if the image URL has changed asynchronously.
+
+    :param info: Dictionary containing cover art info
+    """
+    global current_cover_path, current_cover, track_cover
+    image_url = info.get('item', {}).get('album', {}).get('images', [{}])[0].get('url')
+    if not image_url or current_cover_path == image_url:
+        return
+    else:
+        current_cover = await fetch_image(image_url)
+        await update_image(track_cover, current_cover, 150, 150, 1.0)
+        current_cover_path = image_url
+
+async def update_background(info):
+    """
+    Update background image only if the URL has changed asynchronously.
+
+    :param info: Dictionary containing playback info
+    """
+    global current_bg_path, current_bg, track_background
+    try:
+        background_url = None
+        context = info.get('context', {})
+        context_type = context.get('type')
+
+        if info.get('item').get('name') == current_song:
+            return
+        else:
+            if context_type == 'playlist':
+                playlist_info = api.GetPlayListInfo(context.get('href').split('/')[-1])
+                if playlist_info:
+                    background_url = playlist_info.get('images', [{}])[0].get('url')
+                current_bg = await fetch_image(background_url)
+            await update_image(track_background, current_bg, 480, 245, 0.2)
+            current_bg_path = background_url
+    except Exception as e:
+        print(f"Error updating background: {e}")
+
+async def update_track_text(info):
+    """
+    
+    """
+    global track_info, track_name, track_artist
+
+    if not info.get('item'):
+        return
+    
+    song_name = info.get('item').get('name')
+    song_artist = ""
+    for artist in info.get('item').get('artists'):
+        song_artist += artist.get('name') + "\n"
+
+    track_info.itemconfig(track_name, text=truncate_string(song_name, 30))
+    track_info.itemconfig(track_artist, text=song_artist)
+
+async def update_menu():
+    """
+    Periodically update menu with playback info asynchronously.
+    """
+    global track_info, current_song
+    while True:
+        try:
+            info = api.GetUserPlaybackInfo()
+            if info:
+                if (info.get('item').get('name') != current_song):
+                    await asyncio.gather(update_cover_art(info), update_background(info), update_track_text(info))
+                    current_song = info.get('item').get('name')
+        except Exception as e:
+            print(f"Error in update_menu: {e}")
+        await asyncio.sleep(1)
+
+def play_item(item_id):
+    api.PlayItem(f"spotify:playlist:{item_id}")
+
+def start_async_loop(loop):
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
+
+def main():
+    global api, root, cover_art, track_info, track_cover, track_background, track_name, track_artist
+
+    load_dotenv()
+
+    TK_RESOLUTION = 480, 320
+
+    CLIENT_ID = os.getenv("CLIENT_ID")
+    CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+
+    if not os.getenv("USER_REFRESH_KEY"):
+        print("User not configured")
+        return
+
+    USER_REFRESH_KEY = os.getenv("USER_REFRESH_KEY")
+    api = SpotiPy(CLIENT_ID, CLIENT_SECRET, USER_REFRESH_KEY)
+
+    root = tk.Tk()
+    root.geometry("480x320")
+    root.minsize(480, 320)
+    root.maxsize(480, 320)
+
+    ICON_CONTROL_PAUSE = ImageTk.PhotoImage(Image.open("icons/control_pause.png").resize((50,50)))
+    ICON_CONTROL_PLAY = ImageTk.PhotoImage(Image.open("icons/control_play.png").resize((50, 50)))
+    ICON_CONTROL_PREVIOUS = ImageTk.PhotoImage(Image.open("icons/control_previous.png").resize((50, 50)))
+    ICON_CONTROL_NEXT = ImageTk.PhotoImage(Image.open("icons/control_next.png").resize((50, 50)))
+    ICON_CONTROL_REPEAT_FALSE = ImageTk.PhotoImage(Image.open("icons/control_repeat_false.png").resize((50, 50)))
+    ICON_CONTROL_REPEAT_TRUE = ImageTk.PhotoImage(Image.open("icons/control_repeat_true.png").resize((50, 50)))
+    ICON_CONTROL_SHUFFLE_FALSE = ImageTk.PhotoImage(Image.open("icons/control_shuffle_false.png").resize((50, 50)))
+    ICON_CONTROL_SHUFFLE_TRUE = ImageTk.PhotoImage(Image.open("icons/control_shuffle_true.png").resize((50, 50)))
+
+    menubar = tk.Menu(root, tearoff=False)
+    filemenu = tk.Menu(menubar, tearoff=False)
+    api.GetUserPlaylists()
+    for playlist in api.GetUserPlaylists()['items']:
+        playlist_id = playlist.get('id')
+        filemenu.add_command(
+            label=playlist.get('name'),
+            command=partial(api.PlayItem, f"spotify:playlist:{playlist_id}")
+        )
+    menubar.add_cascade(label="Playlists", menu=filemenu)
+
+    track_info = tk.Canvas(root, width=480, height=245, bg="black")
+    track_info.place(x=0, y=0, relwidth=1, height=245)
+
+    track_background = track_info.create_image(0, 0, image=None, anchor='nw')
+    track_cover = track_info.create_image(25, 50, image=None, anchor='nw')
+    track_name = track_info.create_text(190, 50, anchor=tk.NW, text='SONG_NAME', fill="white", font=("Arial", 15, "bold")) # Font and style
+    track_artist = track_info.create_text(190, 75, anchor=tk.NW, text='SONG_ARTIST', fill="white", font=("Arial", 10)) # Font and style
+
+    print(f"track_bg: {track_background}")
+    print(f"track_cover: {track_cover}")
+    print(f"track_name: {track_name}")
+    print(f"track_artist: {track_artist}")
+
+    controls = ttk.Frame(root, height=75)
+    controls.place(x=0, y=245, relwidth=1, height=75)
+
+    shuffle_button = ttk.Button(controls, image=ICON_CONTROL_SHUFFLE_FALSE)
+    shuffle_button.grid(row=0, column=1, sticky='nsew')
+    previous_button = ttk.Button(controls, image=ICON_CONTROL_PREVIOUS, command= api.PreviousButtonPressed)
+    previous_button.grid(row=0, column=2, sticky='nsew')
+    pause_button = ttk.Button(controls, image=ICON_CONTROL_PAUSE, command=api.pause_button_pressed)
+    pause_button.grid(row=0, column=3, sticky='nsew')
+    next_button = ttk.Button(controls, image=ICON_CONTROL_NEXT, command=api.SkipToNextSong)
+    next_button.grid(row=0, column=4, sticky='nsew')
+    repeat_button = ttk.Button(controls, image=ICON_CONTROL_REPEAT_TRUE)
+    repeat_button.grid(row=0, column=5, sticky='nsew')
+    
+    controls.grid_columnconfigure(1, weight=1)
+    controls.grid_columnconfigure(2, weight=1)
+    controls.grid_columnconfigure(3, weight=1)
+    controls.grid_columnconfigure(4, weight=1)
+    controls.grid_columnconfigure(5, weight=1)
+
+    controls.grid_rowconfigure(0, weight=1)
+
+    sv_ttk.set_theme("dark")
+
+    async_loop = asyncio.new_event_loop()
+    asyncio.run_coroutine_threadsafe(update_menu(), async_loop)
+    asyncio.run_coroutine_threadsafe(refresh_keys(), async_loop)
+
+    root.config(menu=menubar, bg="black")
+
+    # Start asyncio loop in a separate thread
+    import threading
+    threading.Thread(target=start_async_loop, args=(async_loop,), daemon=True).start()
+
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
