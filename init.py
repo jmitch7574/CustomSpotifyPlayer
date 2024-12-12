@@ -144,8 +144,32 @@ async def update_track_text(info):
     for artist in info.get('item').get('artists'):
         song_artist += artist.get('name') + "\n"
 
-    track_info.itemconfig(track_name, text=truncate_string(song_name, 30))
+    track_info.itemconfig(track_name, text=truncate_string(song_name, 29))
     track_info.itemconfig(track_artist, text=song_artist)
+    print(info.get('is_playing'))
+
+async def check_pause_button(info):
+    global shuffle_button, pause_button, repeat_button, ICON_CONTROL_PLAY, ICON_CONTROL_PAUSE, ICON_CONTROL_SHUFFLE_TRUE, ICON_CONTROL_SHUFFLE_FALSE, ICON_CONTROL_REPEAT_OFF, ICON_CONTROL_REPEAT_CONTEXT, ICON_CONTROL_REPEAT_TRACK
+
+    new_play_icon = ICON_CONTROL_PAUSE if info.get('is_playing') else ICON_CONTROL_PLAY
+    pause_button.configure(image=new_play_icon)
+    pause_button.image = new_play_icon
+
+    new_shuffle_icon = ICON_CONTROL_SHUFFLE_TRUE if info.get('shuffle_state') else ICON_CONTROL_SHUFFLE_FALSE
+    shuffle_button.configure(image=new_shuffle_icon)
+    shuffle_button.image = new_shuffle_icon
+
+    new_repeat_icon = None
+    state = info.get('repeat_state')
+    if state == 'off':
+        new_repeat_icon = ICON_CONTROL_REPEAT_OFF
+    elif state == 'context':
+        new_repeat_icon = ICON_CONTROL_REPEAT_CONTEXT
+    else:
+        new_repeat_icon = ICON_CONTROL_REPEAT_TRACK
+
+    repeat_button.configure(image=new_repeat_icon)
+    repeat_button.image = new_repeat_icon
 
 async def update_menu():
     """
@@ -159,6 +183,7 @@ async def update_menu():
                 if (info.get('item').get('name') != current_song):
                     await asyncio.gather(update_cover_art(info), update_background(info), update_track_text(info))
                     current_song = info.get('item').get('name')
+                await asyncio.gather(check_pause_button(info))
         except Exception as e:
             print(f"Error in update_menu: {e}")
         await asyncio.sleep(1)
@@ -171,7 +196,7 @@ def start_async_loop(loop):
     loop.run_forever()
 
 def main():
-    global api, root, cover_art, track_info, track_cover, track_background, track_name, track_artist
+    global api, root, cover_art, track_info, track_cover, track_background, track_name, track_artist, pause_button, repeat_button, shuffle_button, ICON_CONTROL_PAUSE, ICON_CONTROL_PLAY, ICON_CONTROL_REPEAT_OFF, ICON_CONTROL_REPEAT_CONTEXT, ICON_CONTROL_REPEAT_TRACK, ICON_CONTROL_SHUFFLE_FALSE, ICON_CONTROL_SHUFFLE_TRUE
 
     load_dotenv()
 
@@ -196,8 +221,9 @@ def main():
     ICON_CONTROL_PLAY = ImageTk.PhotoImage(Image.open("icons/control_play.png").resize((50, 50)))
     ICON_CONTROL_PREVIOUS = ImageTk.PhotoImage(Image.open("icons/control_previous.png").resize((50, 50)))
     ICON_CONTROL_NEXT = ImageTk.PhotoImage(Image.open("icons/control_next.png").resize((50, 50)))
-    ICON_CONTROL_REPEAT_FALSE = ImageTk.PhotoImage(Image.open("icons/control_repeat_false.png").resize((50, 50)))
-    ICON_CONTROL_REPEAT_TRUE = ImageTk.PhotoImage(Image.open("icons/control_repeat_true.png").resize((50, 50)))
+    ICON_CONTROL_REPEAT_OFF = ImageTk.PhotoImage(Image.open("icons/control_repeat_off.png").resize((50, 50)))
+    ICON_CONTROL_REPEAT_CONTEXT = ImageTk.PhotoImage(Image.open("icons/control_repeat_context.png").resize((50, 50)))
+    ICON_CONTROL_REPEAT_TRACK = ImageTk.PhotoImage(Image.open("icons/control_repeat_track.png").resize((50, 50)))
     ICON_CONTROL_SHUFFLE_FALSE = ImageTk.PhotoImage(Image.open("icons/control_shuffle_false.png").resize((50, 50)))
     ICON_CONTROL_SHUFFLE_TRUE = ImageTk.PhotoImage(Image.open("icons/control_shuffle_true.png").resize((50, 50)))
 
@@ -228,7 +254,7 @@ def main():
     controls = ttk.Frame(root, height=75)
     controls.place(x=0, y=245, relwidth=1, height=75)
 
-    shuffle_button = ttk.Button(controls, image=ICON_CONTROL_SHUFFLE_FALSE)
+    shuffle_button = ttk.Button(controls, image=ICON_CONTROL_SHUFFLE_FALSE, command=api.toggle_shuffle)
     shuffle_button.grid(row=0, column=1, sticky='nsew')
     previous_button = ttk.Button(controls, image=ICON_CONTROL_PREVIOUS, command= api.PreviousButtonPressed)
     previous_button.grid(row=0, column=2, sticky='nsew')
@@ -236,7 +262,7 @@ def main():
     pause_button.grid(row=0, column=3, sticky='nsew')
     next_button = ttk.Button(controls, image=ICON_CONTROL_NEXT, command=api.SkipToNextSong)
     next_button.grid(row=0, column=4, sticky='nsew')
-    repeat_button = ttk.Button(controls, image=ICON_CONTROL_REPEAT_TRUE)
+    repeat_button = ttk.Button(controls, image=ICON_CONTROL_REPEAT_OFF, command=api.toggle_repeat)
     repeat_button.grid(row=0, column=5, sticky='nsew')
     
     controls.grid_columnconfigure(1, weight=1)
