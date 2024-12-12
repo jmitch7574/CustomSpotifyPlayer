@@ -8,7 +8,7 @@ class SpotiPy:
         self.API_KEY = None
         self.USER_KEY = None
         self.USER_REFRESH_KEY = USER_REFRESH_KEY
-
+        self.LAST_PLAYBACK_INFO = {}
         self.RefreshApiKeys()
 
     def RefreshApiKeys(self):
@@ -113,6 +113,7 @@ class SpotiPy:
         response = requests.get(url, headers=headers)
 
         if response.status_code == 200:
+            self.LAST_PLAYBACK_INFO = response.json()
             return response.json()
         elif response.status_code == 204:
             print("User not listening")
@@ -181,3 +182,112 @@ class SpotiPy:
             return response.json()
         else:
             print("Failed to get playlist: ", response.status_code, response.text)
+
+    def SkipToNextSong(self):
+        if (self.API_KEY == None):
+            return
+        
+        url = f"https://api.spotify.com/v1/me/player/next"
+
+        headers = {
+            "Authorization": "Bearer " + self.USER_KEY,
+        }
+
+        response = requests.post(url, headers=headers)
+
+        if response.status_code == 200:
+            return 
+        else:
+            print("Failed to skip: ", response.status_code, response.text)
+
+    def PreviousSong(self):
+        if (self.API_KEY == None):
+            return
+        
+        url = f"https://api.spotify.com/v1/me/player/previous"
+
+        headers = {
+            "Authorization": "Bearer " + self.USER_KEY,
+        }
+
+        response = requests.post(url, headers=headers)
+
+        if response.status_code == 200:
+            return 
+        else:
+            print("Failed to previous song: ", response.status_code, response.text)
+
+    def SeekSong(self, ms):
+        if (self.API_KEY == None):
+            return
+        
+        url = f"https://api.spotify.com/v1/me/player/seek?position_ms={ms}"
+
+        headers = {
+            "Authorization": "Bearer " + self.USER_KEY,
+        }
+
+        response = requests.put(url, headers=headers)
+
+        if response.status_code == 200:
+            return 
+        else:
+            print("Failed to seek: ", response.status_code, response.text)
+
+
+    def RestartSong(self):
+        self.SeekSong(0)
+
+    def PreviousButtonPressed(self):
+        if not self.LAST_PLAYBACK_INFO.get('progress_ms'):
+            print("User not playing")
+            return
+        if int(self.LAST_PLAYBACK_INFO.get('progress_ms')) > 3000:
+            self.RestartSong()
+        else:
+            self.PreviousSong()
+
+    def Pause(self):
+        if (self.API_KEY == None):
+            return
+        
+        url = f"https://api.spotify.com/v1/me/player/pause"
+
+        headers = {
+            "Authorization": "Bearer " + self.USER_KEY,
+        }
+
+        response = requests.put(url, headers=headers)
+
+        if response.status_code == 200:
+            return 
+        else:
+            print("Failed to seek: ", response.status_code, response.text)
+
+    def Resume(self):
+        if (self.API_KEY == None):
+            return
+        
+        url = "https://api.spotify.com/v1/me/player/play"
+
+        headers = {
+            "Authorization": "Bearer " + self.USER_KEY,
+        }
+
+        response = requests.put(url, headers=headers)
+
+        if response.status_code == 200:
+            return
+        if response.status_code == 402:
+            print("User not listening")
+        else:
+            print("Failed to play music: ", response.status_code, response.text)
+
+    def pause_button_pressed(self):
+        if 'is_playing' not in self.LAST_PLAYBACK_INFO.keys():
+            print("User not lsitening")
+            return
+        if self.LAST_PLAYBACK_INFO.get('is_playing') == True:
+            self.Pause()
+        else:
+            self.Resume()
