@@ -121,6 +121,7 @@ class SpotiPy:
             print("User not listening")
         else:
             print("Failed to fetch me: ", response.status_code, response.text)
+        self.LAST_PLAYBACK_INFO = None
 
     def GetUserPlaylists(self):
         if (self.API_KEY == None):
@@ -267,6 +268,9 @@ class SpotiPy:
     def Resume(self):
         if (self.API_KEY == None):
             return
+        if not self.LAST_PLAYBACK_INFO:
+            print("User not playing")
+            return
         
         url = "https://api.spotify.com/v1/me/player/play"
 
@@ -291,3 +295,58 @@ class SpotiPy:
             self.Pause()
         else:
             self.Resume()
+
+    def toggle_shuffle(self):
+        if(self.API_KEY == None):
+            return
+        if not self.LAST_PLAYBACK_INFO:
+            return
+        
+        state = not self.LAST_PLAYBACK_INFO.get('shuffle_state')
+        
+        url = f"https://api.spotify.com/v1/me/player/shuffle?state={state}"
+
+        headers = {
+            "Authorization": "Bearer " + self.USER_KEY,
+        }
+
+        response = requests.put(url, headers=headers)
+
+        if response.status_code == 200:
+            return
+        if response.status_code == 402:
+            print("User not listening")
+        else:
+            print("Failed to toggle shuffle: ", response.status_code, response.text)
+
+    def toggle_repeat(self):
+        if(self.API_KEY == None):
+            return
+        if not self.LAST_PLAYBACK_INFO:
+            return
+        
+        last_state = self.LAST_PLAYBACK_INFO.get("repeat_state")
+        state = ""
+
+        if last_state == 'off':
+            state = 'context'
+        elif last_state == 'context':
+            state = 'track'
+        else:
+            state = 'off'
+        
+        url = f"https://api.spotify.com/v1/me/player/repeat?state={state}"
+
+        headers = {
+            "Authorization": "Bearer " + self.USER_KEY,
+        }
+
+        response = requests.put(url, headers=headers)
+
+        if response.status_code == 200:
+            return
+        if response.status_code == 402:
+            print("User not listening")
+        else:
+            print("Failed to toggle repeat: ", response.status_code, response.text)
+
