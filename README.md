@@ -33,3 +33,8 @@ USER_REFRESH_KEY=[generated user refresh key]
 
 - You can now run init.py and run the program
 - The program will only work while your spotify account is playing music
+
+# Notes
+
+- The software currently only runs at 480x320 pixels
+  - I may fix it to support dynamic resizing
