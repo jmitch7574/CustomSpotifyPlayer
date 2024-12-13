@@ -2,10 +2,8 @@
 
 - A spotify client designed for running on raspberry pis with 480x320 display
 
-```
 > [!WARNING]
 > A spotify premium account is required
-```
 
 # Setup
 
