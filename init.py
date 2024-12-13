@@ -120,10 +120,21 @@ async def update_background(info):
         if info.get('item').get('name') == current_song:
             return
         else:
+            print(context_type)
             if context_type == 'playlist':
                 playlist_info = api.GetPlayListInfo(context.get('href').split('/')[-1])
                 if playlist_info:
-                    background_url = playlist_info.get('images', [{}])[0].get('url')
+                    background_url = playlist_info.get('images')[0].get('url')
+                current_bg = await fetch_image(background_url)
+            if context_type == 'album':
+                album_info = api.GetAlbumInfo(context.get('href').split('/')[-1])
+                if album_info:
+                    background_url = album_info.get('images')[0].get('url')
+                current_bg = await fetch_image(background_url)
+            if context_type == 'artist':
+                artist_info = api.GetArtistInfo(context.get('href').split('/')[-1])
+                if artist_info:
+                    background_url = artist_info.get('images')[0].get('url')
                 current_bg = await fetch_image(background_url)
             await update_image(track_background, current_bg, 480, 245, 0.2)
             current_bg_path = background_url
@@ -186,10 +197,11 @@ async def update_menu():
                 await asyncio.gather(check_pause_button(info))
         except Exception as e:
             print(f"Error in update_menu: {e}")
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
 
 def play_item(item_id):
     api.PlayItem(f"spotify:playlist:{item_id}")
+    asyncio.run(update_menu())
 
 def start_async_loop(loop):
     asyncio.set_event_loop(loop)
@@ -228,15 +240,33 @@ def main():
     ICON_CONTROL_SHUFFLE_TRUE = ImageTk.PhotoImage(Image.open("icons/control_shuffle_true.png").resize((50, 50)))
 
     menubar = tk.Menu(root, tearoff=False)
-    filemenu = tk.Menu(menubar, tearoff=False)
-    api.GetUserPlaylists()
+
+    playlist_menu = tk.Menu(menubar, tearoff=False)
     for playlist in api.GetUserPlaylists()['items']:
         playlist_id = playlist.get('id')
-        filemenu.add_command(
+        playlist_menu.add_command(
             label=playlist.get('name'),
             command=partial(api.PlayItem, f"spotify:playlist:{playlist_id}")
         )
-    menubar.add_cascade(label="Playlists", menu=filemenu)
+    menubar.add_cascade(label="Playlists", menu=playlist_menu)
+
+    album_menu = tk.Menu(menubar, tearoff=False)
+    for album in api.GetUserAlbums()['items']:
+        album_id = album.get('album').get('id')
+        album_menu.add_command(
+            label=album.get('album').get('name'),
+            command=partial(api.PlayItem, f"spotify:album:{album_id}")
+        )
+    menubar.add_cascade(label="Albums", menu=album_menu)
+
+    artist_menu = tk.Menu(menubar, tearoff=False)
+    for artist in api.GetUserArtists()['items']:
+        artist_id = artist.get('uri').split(':')[-1]
+        artist_menu.add_command(
+            label=artist.get('name'),
+            command=partial(api.PlayItem, f"spotify:artist:{artist_id}")
+        )
+    menubar.add_cascade(label="Artists", menu=artist_menu)
 
     track_info = tk.Canvas(root, width=480, height=245, bg="black")
     track_info.place(x=0, y=0, relwidth=1, height=245)
