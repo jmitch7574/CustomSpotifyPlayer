@@ -22,7 +22,7 @@ app = Flask("SpotiPy App")
 def login():
     CLIENT_ID = os.getenv("CLIENT_ID")
     REDIRECT_URI = "http://localhost:8000/callback"
-    SCOPES = "user-read-private user-read-email streaming user-read-playback-state playlist-read-private user-modify-playback-state"
+    SCOPES = "user-read-private user-read-email streaming user-read-playback-state playlist-read-private user-modify-playback-state user-top-read user-library-read"
     AUTH_URL = "https://accounts.spotify.com/authorize"
 
     auth_query_params = {

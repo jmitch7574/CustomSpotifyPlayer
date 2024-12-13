@@ -74,9 +74,45 @@ class SpotiPy:
         response = requests.get(url, headers=headers)
 
         if response.status_code == 200:
-            print(response.json())
+            return response.json()
         else:
             print("Failed to fetch artist: ", response.status_code, response.text)
+
+
+    def GetPlayListInfo(self, id):
+        if (self.API_KEY == None):
+            return
+        
+        url = f"https://api.spotify.com/v1/playlists/{id}"
+
+        headers = {
+            "Authorization": "Bearer " + self.API_KEY,
+        }
+
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print("Failed to get playlist: ", response.status_code, response.text)
+    
+    
+    def GetAlbumInfo(self, id):
+        if (self.API_KEY == None):
+            return
+        
+        url = f"https://api.spotify.com/v1/albums/{id}"
+
+        headers = {
+            "Authorization": "Bearer " + self.API_KEY,
+        }
+
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print("Failed to get album: ", response.status_code, response.text)
 
     def GetUserInfo(self):
         if (self.API_KEY == None):
@@ -143,6 +179,48 @@ class SpotiPy:
         else:
             print("Failed to fetch me: ", response.status_code, response.text)
 
+    
+    def GetUserAlbums(self):
+        if (self.API_KEY == None):
+            return
+        
+        url = "https://api.spotify.com/v1/me/albums?limit=5"
+
+        headers = {
+            "Authorization": "Bearer " + self.USER_KEY
+        }
+
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            return response.json()
+        if response.status_code == 402:
+            print("User not listening")
+            return None
+        else:
+            print("Failed to fetch me: ", response.status_code, response.text)
+
+
+    def GetUserArtists(self):
+        if (self.API_KEY == None):
+            return
+        
+        url = "https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term"
+        headers = {
+            "Authorization": "Bearer " + self.USER_KEY
+        }
+
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            return response.json()
+        if response.status_code == 402:
+            print("User not listening")
+            return None
+        else:
+            print("Failed to fetch top artists: ", response.status_code, response.text)
+
+
     def PlayItem(self, item):
         if (self.API_KEY == None):
             return
@@ -166,23 +244,6 @@ class SpotiPy:
             print("User not listening")
         else:
             print("Failed to play music: ", response.status_code, response.text)
-
-    def GetPlayListInfo(self, id):
-        if (self.API_KEY == None):
-            return
-        
-        url = f"https://api.spotify.com/v1/playlists/{id}"
-
-        headers = {
-            "Authorization": "Bearer " + self.API_KEY,
-        }
-
-        response = requests.get(url, headers=headers)
-
-        if response.status_code == 200:
-            return response.json()
-        else:
-            print("Failed to get playlist: ", response.status_code, response.text)
 
     def SkipToNextSong(self):
         if (self.API_KEY == None):
