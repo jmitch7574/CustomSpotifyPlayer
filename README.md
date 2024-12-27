@@ -15,26 +15,25 @@
 ```
 CLIENT_ID=[your client ID here]
 CLIENT_SECRET=[your client secret here]
+USER_REFRESH_KEY=
+RESOLUTION_X=
+RESOLUTION_Y=
+FULLSCREEN= (optional, only runs fullscreen if key is present)
 ```
 
-- Run the following script
+- Run the following code to get a user token refresh key for your application
 
 ```
 > python getUserAuthCode.py
 ```
 
-- Your .env file should now look like the following
+- This should load up your web browser with a spotify confirmation page, click accept.
 
-```
-CLIENT_ID=[your client ID here]
-CLIENT_SECRET=[your client secret here]
-USER_REFRESH_KEY=[generated user refresh key]
-```
-
+- Your .env file should now have your refresh key
 - You can now run init.py and run the program
 - The program will only work while your spotify account is playing music
 
 # Notes
 
-- The software currently only runs at 480x320 pixels
-  - I may fix it to support dynamic resizing
+- The program cannot be resized at runtime, it is fixed at the .env resolution
+- Do not expect amazing code, it is currently a proof of concept
