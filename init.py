@@ -237,7 +237,8 @@ def main():
     root.geometry(f"{RESOLUTION_X}x{RESOLUTION_Y}")
     root.minsize(RESOLUTION_X, RESOLUTION_Y)
     root.maxsize(RESOLUTION_X, RESOLUTION_Y)
-
+    root.config(cursor="none")
+    
     try:
         if os.getenv("FULLSCREEN"):
             root.attributes("-fullscreen", True)
