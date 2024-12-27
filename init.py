@@ -111,7 +111,7 @@ async def update_background(info):
 
     :param info: Dictionary containing playback info
     """
-    global current_bg_path, current_bg, track_background
+    global current_bg_path, current_bg, track_background, RESOLUTION_X, RESOLUTION_Y, CONTROL_ROW_HEIGHT
     try:
         background_url = None
         context = info.get('context', {})
@@ -136,7 +136,7 @@ async def update_background(info):
                 if artist_info:
                     background_url = artist_info.get('images')[0].get('url')
                 current_bg = await fetch_image(background_url)
-            await update_image(track_background, current_bg, 480, 245, 0.2)
+            await update_image(track_background, current_bg, RESOLUTION_X, RESOLUTION_Y - CONTROL_ROW_HEIGHT, 0.2)
             current_bg_path = background_url
     except Exception as e:
         print(f"Error updating background: {e}")
@@ -208,7 +208,7 @@ def start_async_loop(loop):
     loop.run_forever()
 
 def main():
-    global api, root, cover_art, track_info, track_cover, track_background, track_name, track_artist, pause_button, repeat_button, shuffle_button, ICON_CONTROL_PAUSE, ICON_CONTROL_PLAY, ICON_CONTROL_REPEAT_OFF, ICON_CONTROL_REPEAT_CONTEXT, ICON_CONTROL_REPEAT_TRACK, ICON_CONTROL_SHUFFLE_FALSE, ICON_CONTROL_SHUFFLE_TRUE, RESOLUTION_X, RESOLUTION_Y
+    global api, root, cover_art, track_info, track_cover, track_background, track_name, track_artist, pause_button, repeat_button, shuffle_button, ICON_CONTROL_PAUSE, ICON_CONTROL_PLAY, ICON_CONTROL_REPEAT_OFF, ICON_CONTROL_REPEAT_CONTEXT, ICON_CONTROL_REPEAT_TRACK, ICON_CONTROL_SHUFFLE_FALSE, ICON_CONTROL_SHUFFLE_TRUE, RESOLUTION_X, RESOLUTION_Y, CONTROL_ROW_HEIGHT
 
     load_dotenv()
 
