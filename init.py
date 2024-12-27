@@ -145,7 +145,7 @@ async def update_track_text(info):
     """
     
     """
-    global track_info, track_name, track_artist
+    global track_info, track_name, track_artist, RESOLUTION_X
 
     if not info.get('item'):
         return
@@ -155,7 +155,7 @@ async def update_track_text(info):
     for artist in info.get('item').get('artists'):
         song_artist += artist.get('name') + "\n"
 
-    track_info.itemconfig(track_name, text=truncate_string(song_name, 29))
+    track_info.itemconfig(track_name, text=truncate_string(song_name, RESOLUTION_X // 15))
     track_info.itemconfig(track_artist, text=song_artist)
     print(info.get('is_playing'))
 
@@ -208,11 +208,11 @@ def start_async_loop(loop):
     loop.run_forever()
 
 def main():
-    global api, root, cover_art, track_info, track_cover, track_background, track_name, track_artist, pause_button, repeat_button, shuffle_button, ICON_CONTROL_PAUSE, ICON_CONTROL_PLAY, ICON_CONTROL_REPEAT_OFF, ICON_CONTROL_REPEAT_CONTEXT, ICON_CONTROL_REPEAT_TRACK, ICON_CONTROL_SHUFFLE_FALSE, ICON_CONTROL_SHUFFLE_TRUE
+    global api, root, cover_art, track_info, track_cover, track_background, track_name, track_artist, pause_button, repeat_button, shuffle_button, ICON_CONTROL_PAUSE, ICON_CONTROL_PLAY, ICON_CONTROL_REPEAT_OFF, ICON_CONTROL_REPEAT_CONTEXT, ICON_CONTROL_REPEAT_TRACK, ICON_CONTROL_SHUFFLE_FALSE, ICON_CONTROL_SHUFFLE_TRUE, RESOLUTION_X, RESOLUTION_Y
 
     load_dotenv()
 
-    TK_RESOLUTION = 480, 320
+    CONTROL_ROW_HEIGHT = 75
 
     CLIENT_ID = os.getenv("CLIENT_ID")
     CLIENT_SECRET = os.getenv("CLIENT_SECRET")
@@ -224,10 +224,25 @@ def main():
     USER_REFRESH_KEY = os.getenv("USER_REFRESH_KEY")
     api = SpotiPy(CLIENT_ID, CLIENT_SECRET, USER_REFRESH_KEY)
 
+    RESOLUTION_X = int(os.getenv("RESOLUTION_X"))
+    RESOLUTION_Y = int(os.getenv("RESOLUTION_Y"))
+
+    print(RESOLUTION_Y - CONTROL_ROW_HEIGHT)
+    if not RESOLUTION_X or not RESOLUTION_Y:
+        print("Resolution not configured")
+        return
+
     root = tk.Tk()
-    root.geometry("480x320")
-    root.minsize(480, 320)
-    root.maxsize(480, 320)
+
+    root.geometry(f"{RESOLUTION_X}x{RESOLUTION_Y}")
+    root.minsize(RESOLUTION_X, RESOLUTION_Y)
+    root.maxsize(RESOLUTION_X, RESOLUTION_Y)
+
+    try:
+        if os.getenv("FULLSCREEN"):
+            root.attributes("-fullscreen", True)
+    except:
+        pass
 
     ICON_CONTROL_PAUSE = ImageTk.PhotoImage(Image.open("icons/control_pause.png").resize((50,50)))
     ICON_CONTROL_PLAY = ImageTk.PhotoImage(Image.open("icons/control_play.png").resize((50, 50)))
@@ -268,21 +283,27 @@ def main():
         )
     menubar.add_cascade(label="Artists", menu=artist_menu)
 
-    track_info = tk.Canvas(root, width=480, height=245, bg="black")
-    track_info.place(x=0, y=0, relwidth=1, height=245)
+    track_info = tk.Canvas(root, width=RESOLUTION_X, height=RESOLUTION_Y-CONTROL_ROW_HEIGHT, bg="black")
+    track_info.place(x=0, y=0, relwidth=1, height=RESOLUTION_Y-CONTROL_ROW_HEIGHT)
+
+    track_section_height = 150
+    space_available = (RESOLUTION_Y - CONTROL_ROW_HEIGHT)
+    margin = (space_available - track_section_height) / 2
+
+    print(margin)
 
     track_background = track_info.create_image(0, 0, image=None, anchor='nw')
-    track_cover = track_info.create_image(25, 50, image=None, anchor='nw')
-    track_name = track_info.create_text(190, 50, anchor=tk.NW, text='SONG_NAME', fill="white", font=("Arial", 15, "bold")) # Font and style
-    track_artist = track_info.create_text(190, 75, anchor=tk.NW, text='SONG_ARTIST', fill="white", font=("Arial", 10)) # Font and style
+    track_cover = track_info.create_image(25, margin, image=None, anchor='nw')
+    track_name = track_info.create_text(190, margin, anchor=tk.NW, text='SONG_NAME', fill="white", font=("Arial", 15, "bold")) # Font and style
+    track_artist = track_info.create_text(190, margin + 25, anchor=tk.NW, text='SONG_ARTIST', fill="white", font=("Arial", 10)) # Font and style
 
     print(f"track_bg: {track_background}")
     print(f"track_cover: {track_cover}")
     print(f"track_name: {track_name}")
     print(f"track_artist: {track_artist}")
 
-    controls = ttk.Frame(root, height=75)
-    controls.place(x=0, y=245, relwidth=1, height=75)
+    controls = ttk.Frame(root, height=CONTROL_ROW_HEIGHT)
+    controls.place(x=0, y=RESOLUTION_Y-CONTROL_ROW_HEIGHT-20, relwidth=1, height=CONTROL_ROW_HEIGHT)
 
     shuffle_button = ttk.Button(controls, image=ICON_CONTROL_SHUFFLE_FALSE, command=api.toggle_shuffle)
     shuffle_button.grid(row=0, column=1, sticky='nsew')
