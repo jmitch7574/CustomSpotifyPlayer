@@ -29,6 +29,9 @@ FULLSCREEN= (optional, only runs fullscreen if key is present)
 
 - This should load up your web browser with a spotify confirmation page, click accept.
 
+> [!IMPORTANT]
+> If you're aiming on running this on a micro coputer, it may be best you get the refresh token on a desktop first before copying it to your micro computer.
+
 - Your .env file should now have your refresh key
 - You can now run init.py and run the program
 - The program will only work while your spotify account is playing music
