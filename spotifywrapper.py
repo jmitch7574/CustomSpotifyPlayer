@@ -1,7 +1,7 @@
 import requests
 import base64
 
-class SpotiPy:
+class SpotifyWrapper:
     def __init__(self, CLIENT_ID, CLIENT_SECRET, USER_REFRESH_KEY):
         self.CLIENT_ID = CLIENT_ID
         self.CLIENT_SECRET = CLIENT_SECRET

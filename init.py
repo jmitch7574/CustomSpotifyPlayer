@@ -5,7 +5,7 @@ import io
 from dotenv import load_dotenv
 import os
 
-from spoti import SpotiPy
+from spotifywrapper import SpotifyWrapper
 import tkinter as tk
 from tkinter import ttk
 import sv_ttk
@@ -222,7 +222,7 @@ def main():
         return
 
     USER_REFRESH_KEY = os.getenv("USER_REFRESH_KEY")
-    api = SpotiPy(CLIENT_ID, CLIENT_SECRET, USER_REFRESH_KEY)
+    api = SpotifyWrapper(CLIENT_ID, CLIENT_SECRET, USER_REFRESH_KEY)
 
     RESOLUTION_X = int(os.getenv("RESOLUTION_X"))
     RESOLUTION_Y = int(os.getenv("RESOLUTION_Y"))

@@ -4,7 +4,7 @@ import time
 import platform
 from dotenv import load_dotenv, set_key
 import os
-from spoti import SpotiPy
+from spotifywrapper import SpotifyWrapper
 import requests
 
 load_dotenv()
